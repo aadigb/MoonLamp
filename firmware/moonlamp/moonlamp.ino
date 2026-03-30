@@ -35,7 +35,7 @@ const int   SERVER_PORT   = 3000;
 
 // ── Hardware ──────────────────────────────────────────────────────────────────
 
-#define DATA_PIN      5     // GPIO pin → ring DIN
+#define DATA_PIN      4     // GPIO pin → ring DIN
 #define NUM_PIXELS    16    // NeoPixel Ring 16
 #define MAX_BRIGHTNESS 160  // 0–255. Keep ≤ 160 on USB power to avoid current issues.
 
