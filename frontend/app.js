@@ -1,13 +1,14 @@
 // ── State ─────────────────────────────────────────────────────────────────────
 
-let currentMode = 'asset';
+let currentMode      = 'asset';
 let currentAssetType = 'crypto';
-let selectedCoinId = null;
-let searchDebounce = null;
+let selectedCoinId   = null;
+let searchDebounce   = null;
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
 
 window.addEventListener('DOMContentLoaded', () => {
+  spawnStars();
   fetchStatus();
   setInterval(fetchStatus, 30_000);
   showLocalIp();
@@ -15,6 +16,29 @@ window.addEventListener('DOMContentLoaded', () => {
     if (!e.target.closest('.search-wrap')) closeDropdown();
   });
 });
+
+// ── Stars ─────────────────────────────────────────────────────────────────────
+
+function spawnStars() {
+  const container = document.getElementById('stars');
+  if (!container) return;
+  const N = 60;
+  for (let i = 0; i < N; i++) {
+    const el = document.createElement('div');
+    el.className = 'star';
+    const size = Math.random() < 0.2 ? 3 : 2;
+    el.style.cssText = `
+      left: ${Math.random() * 100}vw;
+      top:  ${Math.random() * 100}vh;
+      width:  ${size}px;
+      height: ${size}px;
+      --dur:   ${2 + Math.random() * 4}s;
+      --delay: ${-Math.random() * 5}s;
+      opacity: 0;
+    `;
+    container.appendChild(el);
+  }
+}
 
 // ── Status polling ────────────────────────────────────────────────────────────
 
@@ -24,135 +48,170 @@ async function fetchStatus() {
     const { state, config } = await res.json();
     renderStatus(state);
     syncFormToConfig(config);
+    setConnected(true);
     hideError();
   } catch {
-    showError('Cannot reach server. Make sure the backend is running.');
+    setConnected(false);
+    showError('Cannot reach server. Make sure the backend is running (npm start).');
   }
 }
+
+function setConnected(online) {
+  const led  = document.getElementById('connLed');
+  const text = document.getElementById('connText');
+  if (!led) return;
+  led.className  = `conn-led${online ? ' online' : ''}`;
+  text.textContent = online ? 'CONNECTED' : 'OFFLINE';
+}
+
+// ── Render status ─────────────────────────────────────────────────────────────
 
 function renderStatus(state) {
   const { color, intensity, alert, label, currentValue, percentChange, lastUpdated, error, detail } = state;
 
-  // ── Lamp glow — scale glow radius with intensity ──
+  // Lamp glow (filter controlled by CSS class)
   const lamp = document.getElementById('lampIcon');
   lamp.className = `lamp-icon ${color}`;
-  if (intensity && color !== 'white') {
-    const glowSize = Math.round(10 + intensity * 60); // 10px → 70px
-    const col = color === 'green' ? 'var(--green)' : 'var(--red)';
-    lamp.style.textShadow = `0 0 ${glowSize}px ${col}, 0 0 ${glowSize * 2}px ${col}`;
-  } else {
-    lamp.style.textShadow = '';
-  }
 
-  // ── Status dot ──
+  // Status dot
   const dot = document.getElementById('statusDot');
   dot.className = `status-dot ${color}${alert ? ' alert-active' : ''}`;
 
-  // ── Alert badge ──
+  // Alert badge
   const badge = document.getElementById('alertBadge');
   if (alert && color !== 'white') {
     badge.style.display = 'block';
-    badge.textContent = 'ALERT';
-    badge.className = `alert-badge${color === 'green' ? ' green-alert' : ''}`;
+    badge.textContent   = '!ALERT';
+    badge.className     = `alert-badge${color === 'green' ? ' green-alert' : ''}`;
   } else {
     badge.style.display = 'none';
   }
 
-  // ── Intensity bar ──
-  const intensityCard = document.getElementById('intensityCard');
-  const intensityFill = document.getElementById('intensityFill');
-  const intensityValue = document.getElementById('intensityValue');
-  if (percentChange !== null && percentChange !== undefined && color !== 'white') {
-    intensityCard.style.display = 'block';
-    intensityFill.style.width = `${Math.round((intensity ?? 0.2) * 100)}%`;
-    intensityFill.className = `intensity-fill ${color}`;
-    intensityValue.textContent = `${Math.round((intensity ?? 0.2) * 100)}% signal · ${Math.abs(percentChange).toFixed(2)}% move`;
-  } else {
-    intensityCard.style.display = 'none';
-  }
+  // Label
+  document.getElementById('statusLabel').textContent =
+    label ? `TRACKING: ${label.toUpperCase()}` : 'TRACKING: —';
 
-  // ── Label ──
-  document.getElementById('statusLabel').textContent = label || '—';
-
-  // ── Value ──
+  // Value — VT323 font + color class for glow
   const valEl = document.getElementById('statusValue');
   if (currentValue !== null && currentValue !== undefined) {
     valEl.textContent = `$${formatNumber(currentValue)}`;
+    valEl.className   = `status-value${color !== 'white' ? ' ' + color : ''}`;
   } else if (error) {
-    valEl.textContent = 'Error';
+    valEl.textContent = 'ERR';
+    valEl.className   = 'status-value red';
   } else {
-    valEl.textContent = '—';
+    valEl.textContent = 'LOADING...';
+    valEl.className   = 'status-value';
   }
 
-  // ── Change ──
+  // Change line
   const changeEl = document.getElementById('statusChange');
   if (percentChange !== null && percentChange !== undefined) {
-    const sign = percentChange >= 0 ? '+' : '';
-    changeEl.textContent = `${sign}${percentChange.toFixed(2)}% (24h)`;
-    changeEl.className = `status-change ${percentChange >= 0 ? 'positive' : 'negative'}`;
+    const sign = percentChange >= 0 ? '▲ +' : '▼ ';
+    changeEl.textContent = `${sign}${percentChange.toFixed(2)}% (24H)`;
+    changeEl.className   = `status-change ${percentChange >= 0 ? 'positive' : 'negative'}`;
   } else {
     changeEl.textContent = '';
-    changeEl.className = 'status-change';
+    changeEl.className   = 'status-change';
   }
 
-  // ── Detail line (portfolio chain breakdown, token counts, etc.) ──
+  // Detail line (portfolio chain breakdown, etc.)
   document.getElementById('statusDetail').textContent = detail || '';
 
-  // ── Timestamp ──
+  // Timestamp
   if (lastUpdated) {
-    document.getElementById('statusTime').textContent = new Date(lastUpdated).toLocaleTimeString();
+    document.getElementById('statusTime').textContent =
+      new Date(lastUpdated).toLocaleTimeString();
+  }
+
+  // EQ meter
+  const intensityCard = document.getElementById('intensityCard');
+  if (percentChange !== null && percentChange !== undefined && color !== 'white') {
+    intensityCard.style.display = 'block';
+    renderEqMeter(intensity ?? 0.2, color);
+    document.getElementById('intensityValue').textContent =
+      `${Math.round((intensity ?? 0.2) * 100)}% SIGNAL · ${Math.abs(percentChange).toFixed(2)}% MOVE`;
+  } else {
+    intensityCard.style.display = 'none';
   }
 
   if (error) showError(error);
 }
 
-function syncFormToConfig(config) {
-  // Sync mode tabs
-  if (currentMode !== config.mode) switchMode(config.mode, false);
+// ── EQ Meter — 16 segments matching NeoPixel Ring 16 ─────────────────────────
 
-  // Sync asset type tabs
+function renderEqMeter(intensity, color) {
+  const container = document.getElementById('eqBars');
+  if (!container) return;
+  const N      = 16;
+  const active = Math.round(intensity * N);
+  let   html   = '';
+
+  for (let i = 0; i < N; i++) {
+    const isActive = i < active;
+    const ratio    = i / (N - 1); // 0 → 1 left to right
+
+    let bg = '';
+    if (isActive) {
+      if (color === 'red') {
+        // Pink → hot pink
+        bg = ratio < 0.6 ? '#ff4477' : '#ff0080';
+      } else {
+        // Green → yellow → orange (like a real VU meter)
+        bg = ratio < 0.625 ? '#00ff41' : ratio < 0.875 ? '#ffe600' : '#ff8800';
+      }
+    }
+
+    html += `<div class="eq-seg${isActive ? ' active' : ''}" style="${
+      isActive ? `background:${bg};box-shadow:0 0 5px ${bg};animation-delay:${i * 0.04}s` : ''
+    }"></div>`;
+  }
+
+  container.innerHTML = html;
+}
+
+// ── Sync form to config ───────────────────────────────────────────────────────
+
+function syncFormToConfig(config) {
+  if (currentMode !== config.mode) switchMode(config.mode, false);
   if (config.mode === 'asset') {
     if (currentAssetType !== config.assetType) switchAssetType(config.assetType, false);
     if (config.assetType === 'crypto' && config.asset) {
-      const input = document.getElementById('cryptoSearch');
-      if (!input.value) { input.value = config.asset; selectedCoinId = config.asset; }
+      const el = document.getElementById('cryptoSearch');
+      if (!el.value) { el.value = config.asset; selectedCoinId = config.asset; }
     }
     if (config.assetType === 'stock' && config.asset) {
-      const input = document.getElementById('stockTicker');
-      if (!input.value) input.value = config.asset.toUpperCase();
+      const el = document.getElementById('stockTicker');
+      if (!el.value) el.value = config.asset.toUpperCase();
     }
   } else {
-    const input = document.getElementById('walletInput');
-    if (!input.value && config.walletAddress) input.value = config.walletAddress;
+    const el = document.getElementById('walletInput');
+    if (!el.value && config.walletAddress) el.value = config.walletAddress;
   }
-
-  // Sync threshold slider
   if (config.alertThreshold !== undefined) {
-    const slider = document.getElementById('thresholdSlider');
-    const display = document.getElementById('thresholdDisplay');
-    slider.value = config.alertThreshold;
-    display.textContent = `${config.alertThreshold}%`;
+    document.getElementById('thresholdSlider').value = config.alertThreshold;
+    document.getElementById('thresholdDisplay').textContent = `${config.alertThreshold}%`;
   }
 }
 
 // ── Mode switching ────────────────────────────────────────────────────────────
 
-function switchMode(mode, updateDom = true) {
+function switchMode(mode, dom = true) {
   currentMode = mode;
-  if (!updateDom) return;
+  if (!dom) return;
   document.getElementById('tabAsset').classList.toggle('active', mode === 'asset');
   document.getElementById('tabWallet').classList.toggle('active', mode === 'wallet');
-  document.getElementById('panelAsset').style.display = mode === 'asset' ? '' : 'none';
+  document.getElementById('panelAsset').style.display  = mode === 'asset'  ? '' : 'none';
   document.getElementById('panelWallet').style.display = mode === 'wallet' ? '' : 'none';
 }
 
-function switchAssetType(type, updateDom = true) {
+function switchAssetType(type, dom = true) {
   currentAssetType = type;
-  if (!updateDom) return;
+  if (!dom) return;
   document.getElementById('tabCrypto').classList.toggle('active', type === 'crypto');
   document.getElementById('tabStock').classList.toggle('active', type === 'stock');
   document.getElementById('cryptoInput').style.display = type === 'crypto' ? '' : 'none';
-  document.getElementById('stockInput').style.display = type === 'stock' ? '' : 'none';
+  document.getElementById('stockInput').style.display  = type === 'stock'  ? '' : 'none';
 }
 
 // ── Crypto search ─────────────────────────────────────────────────────────────
@@ -167,20 +226,18 @@ function onCryptoSearch(val) {
 
 async function searchCoins(query) {
   try {
-    const res = await fetch(`/api/search/crypto?q=${encodeURIComponent(query)}`);
+    const res   = await fetch(`/api/search/crypto?q=${encodeURIComponent(query)}`);
     const coins = await res.json();
     if (!coins.length) { closeDropdown(); return; }
     renderDropdown(coins);
-  } catch {
-    closeDropdown();
-  }
+  } catch { closeDropdown(); }
 }
 
 function renderDropdown(coins) {
   const dd = document.getElementById('cryptoDropdown');
   dd.innerHTML = coins.map((c) => `
     <div class="dropdown-item" onclick="selectCoin('${c.id}', '${escHtml(c.name)}')">
-      ${c.thumb ? `<img src="${c.thumb}" alt="" />` : '<div style="width:22px"></div>'}
+      ${c.thumb ? `<img src="${c.thumb}" alt="" />` : '<div style="width:18px"></div>'}
       <span class="dropdown-item-name">${escHtml(c.name)}</span>
       <span class="dropdown-item-symbol">${c.symbol}</span>
     </div>
@@ -206,87 +263,68 @@ async function saveAsset() {
   let body;
   if (currentAssetType === 'crypto') {
     const coinId = selectedCoinId || document.getElementById('cryptoSearch').value.trim().toLowerCase();
-    if (!coinId) { showError('Please search for and select a cryptocurrency.'); return; }
+    if (!coinId) { showError('Search and select a cryptocurrency first.'); return; }
     body = { mode: 'asset', assetType: 'crypto', asset: coinId };
   } else {
     const ticker = document.getElementById('stockTicker').value.trim();
-    if (!ticker) { showError('Please enter a stock ticker (e.g. AAPL).'); return; }
+    if (!ticker) { showError('Enter a stock ticker (e.g. AAPL).'); return; }
     body = { mode: 'asset', assetType: 'stock', asset: ticker };
   }
-
-  try {
-    const res = await fetch('/api/config', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    const data = await res.json();
-    if (data.state?.error) showError(data.state.error);
-    else renderStatus(data.state);
-  } catch (err) {
-    showError('Failed to save: ' + err.message);
-  }
+  await postConfig(body);
 }
 
 async function saveWallet() {
   hideError();
   const addr = document.getElementById('walletInput').value.trim();
   if (!addr || !addr.startsWith('0x') || addr.length !== 42) {
-    showError('Please enter a valid EVM address (0x… 42 characters).');
+    showError('Enter a valid EVM address (0x... 42 characters).');
     return;
   }
-  try {
-    const res = await fetch('/api/config', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mode: 'wallet', walletAddress: addr }),
-    });
-    const data = await res.json();
-    if (data.state?.error) showError(data.state.error);
-    else renderStatus(data.state);
-  } catch (err) {
-    showError('Failed to save: ' + err.message);
-  }
-}
-
-// ── Threshold ─────────────────────────────────────────────────────────────────
-
-function onThresholdChange(val) {
-  document.getElementById('thresholdDisplay').textContent = `${parseFloat(val)}%`;
+  await postConfig({ mode: 'wallet', walletAddress: addr });
 }
 
 async function saveThreshold() {
   hideError();
   const val = parseFloat(document.getElementById('thresholdSlider').value);
+  await postConfig({ alertThreshold: val });
+}
+
+async function postConfig(body) {
   try {
-    const res = await fetch('/api/config', {
-      method: 'POST',
+    const res  = await fetch('/api/config', {
+      method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ alertThreshold: val }),
+      body:    JSON.stringify(body),
     });
     const data = await res.json();
     if (data.state?.error) showError(data.state.error);
     else renderStatus(data.state);
   } catch (err) {
-    showError('Failed to save threshold: ' + err.message);
+    showError('Request failed: ' + err.message);
   }
+}
+
+// ── Threshold slider ──────────────────────────────────────────────────────────
+
+function onThresholdChange(val) {
+  document.getElementById('thresholdDisplay').textContent = `${parseFloat(val)}%`;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function formatNumber(n) {
   if (n >= 1000) return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  if (n >= 1) return n.toFixed(2);
+  if (n >= 1)    return n.toFixed(2);
   return n.toFixed(6);
 }
 
 function escHtml(s) {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 function showError(msg) {
   const el = document.getElementById('errorBox');
-  el.textContent = msg;
+  el.textContent   = msg;
   el.style.display = 'block';
 }
 
@@ -297,12 +335,12 @@ function hideError() {
 function showLocalIp() {
   const host = window.location.hostname;
   const port = window.location.port || '3000';
-  const el = document.getElementById('localIp');
-  if (el) {
-    el.textContent = host === 'localhost' || host === '127.0.0.1'
-      ? 'Run ipconfig (Windows) to find your local IP'
+  const ipEl = document.getElementById('localIp');
+  const epEl = document.getElementById('espEndpoint');
+  if (ipEl) {
+    ipEl.textContent = (host === 'localhost' || host === '127.0.0.1')
+      ? 'run ipconfig (Windows) to find your LAN IP'
       : host;
-    const epEl = document.getElementById('espEndpoint');
-    if (epEl) epEl.textContent = `http://${host}:${port}/api/color`;
   }
+  if (epEl) epEl.textContent = `http://${host}:${port}/api/color`;
 }
