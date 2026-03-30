@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Moonlamp</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="lamp-icon" id="lampIcon">☽</div>
+      <h1>Moonlamp</h1>
+      <p class="subtitle">Your portfolio, in light</p>
+    </header>
+
+    <!-- Status card -->
+    <div class="card status-card" id="statusCard">
+      <div class="status-dot-wrap">
+        <div class="status-dot" id="statusDot"></div>
+        <div class="alert-badge" id="alertBadge" style="display:none">ALERT</div>
+      </div>
+      <div class="status-info">
+        <div class="status-label" id="statusLabel">—</div>
+        <div class="status-value" id="statusValue">Loading…</div>
+        <div class="status-change" id="statusChange"></div>
+        <div class="status-detail" id="statusDetail"></div>
+      </div>
+      <div class="status-time" id="statusTime"></div>
+    </div>
+
+    <!-- Intensity bar -->
+    <div class="card intensity-card" id="intensityCard" style="display:none">
+      <div class="intensity-label">Signal Strength</div>
+      <div class="intensity-track">
+        <div class="intensity-fill" id="intensityFill"></div>
+      </div>
+      <div class="intensity-value" id="intensityValue"></div>
+    </div>
+
+    <!-- Mode tabs -->
+    <div class="card">
+      <div class="tabs">
+        <button class="tab active" id="tabAsset" onclick="switchMode('asset')">Asset Price</button>
+        <button class="tab" id="tabWallet" onclick="switchMode('wallet')">EVM Wallet</button>
+      </div>
+
+      <!-- Asset panel -->
+      <div id="panelAsset">
+        <div class="tabs sub-tabs">
+          <button class="tab active" id="tabCrypto" onclick="switchAssetType('crypto')">Crypto</button>
+          <button class="tab" id="tabStock" onclick="switchAssetType('stock')">Stock</button>
+        </div>
+
+        <div id="cryptoInput">
+          <label class="field-label">Search Cryptocurrency</label>
+          <div class="search-wrap">
+            <input
+              type="text"
+              id="cryptoSearch"
+              class="input"
+              placeholder="Bitcoin, Ethereum, Solana…"
+              oninput="onCryptoSearch(this.value)"
+              autocomplete="off"
+            />
+            <div class="dropdown" id="cryptoDropdown"></div>
+          </div>
+          <div class="field-hint" id="cryptoHint"></div>
+        </div>
+
+        <div id="stockInput" style="display:none">
+          <label class="field-label">Stock Ticker</label>
+          <input
+            type="text"
+            id="stockTicker"
+            class="input"
+            placeholder="AAPL, TSLA, SPY…"
+            style="text-transform:uppercase"
+          />
+        </div>
+
+        <button class="btn" onclick="saveAsset()">Track Asset</button>
+      </div>
+
+      <!-- Wallet panel -->
+      <div id="panelWallet" style="display:none">
+        <label class="field-label">EVM Wallet Address</label>
+        <input
+          type="text"
+          id="walletInput"
+          class="input"
+          placeholder="0x…"
+          spellcheck="false"
+        />
+        <p class="field-hint">
+          Full multi-token portfolio value via Zerion.<br/>
+          Color reflects whether your total portfolio is up or down today.
+        </p>
+        <button class="btn" onclick="saveWallet()">Track Wallet</button>
+      </div>
+    </div>
+
+    <!-- Alert threshold card -->
+    <div class="card">
+      <div class="threshold-header">
+        <div>
+          <div class="field-label" style="margin-bottom:2px">Alert Threshold</div>
+          <div class="field-hint">Lamp flashes rapidly and intensity maxes out at this % move</div>
+        </div>
+        <div class="threshold-display" id="thresholdDisplay">5%</div>
+      </div>
+      <div class="slider-wrap">
+        <span class="slider-tick">1%</span>
+        <input
+          type="range"
+          id="thresholdSlider"
+          class="slider"
+          min="1" max="20" step="0.5"
+          value="5"
+          oninput="onThresholdChange(this.value)"
+        />
+        <span class="slider-tick">20%</span>
+      </div>
+      <button class="btn btn-sm" onclick="saveThreshold()">Save Threshold</button>
+    </div>
+
+    <!-- Error box -->
+    <div class="error-box" id="errorBox" style="display:none"></div>
+
+    <!-- ESP32 setup info -->
+    <details class="card info-card">
+      <summary>ESP32 Setup Guide</summary>
+      <div class="info-body">
+        <p>Your ESP32 polls <code id="espEndpoint">http://&lt;your-ip&gt;:3000/api/color</code> every 60 seconds.</p>
+        <p>The response now includes <code>intensity</code> (0.0–1.0) and <code>alert</code> (true/false) so the lamp dims/brightens with market moves and flashes on big swings.</p>
+        <ol>
+          <li>Install <strong>Arduino IDE</strong> and add ESP32 board support.</li>
+          <li>Install libraries: <strong>Adafruit NeoPixel</strong> and <strong>ArduinoJson</strong>.</li>
+          <li>Open <code>firmware/moonlamp/moonlamp.ino</code>.</li>
+          <li>Fill in your WiFi SSID, password, and this server's local IP.</li>
+          <li>Flash to ESP32 via USB.</li>
+        </ol>
+        <p>Your local server IP: <strong id="localIp">checking…</strong></p>
+      </div>
+    </details>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
