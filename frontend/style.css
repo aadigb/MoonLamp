@@ -187,33 +187,6 @@ h1 {
   50%       { opacity: 0; }
 }
 
-/* Connection indicator */
-.conn-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  margin-top: 12px;
-  font-size: 10px;
-  letter-spacing: 2px;
-  color: var(--muted);
-  text-transform: uppercase;
-}
-.conn-led {
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  background: var(--muted);
-  flex-shrink: 0;
-  transition: background 0.4s, box-shadow 0.4s;
-}
-.conn-led.online {
-  background: var(--green);
-  box-shadow: 0 0 6px var(--green);
-  animation: led-pulse 2s ease-in-out infinite;
-}
-@keyframes led-pulse {
-  0%, 100% { box-shadow: 0 0 4px  var(--green); }
-  50%       { box-shadow: 0 0 14px var(--green), 0 0 28px rgba(0,255,65,0.4); }
-}
 
 /* ── Base card (terminal window) ── */
 .card {

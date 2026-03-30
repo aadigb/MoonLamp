@@ -22,7 +22,7 @@ const REFRESH_INTERVAL = parseInt(process.env.REFRESH_INTERVAL_MS || '60000');
 let config = {
   mode: 'asset',          // 'asset' | 'wallet'
   assetType: 'crypto',    // 'crypto' | 'stock'
-  asset: 'ethereum',      // CoinGecko ID for crypto, ticker for stock
+  asset: 'bitcoin',      // CoinGecko ID for crypto, ticker for stock
   walletAddress: '',      // EVM address (0x...)
   alertThreshold: 5,      // % change that triggers alert flash (default 5%)
 };

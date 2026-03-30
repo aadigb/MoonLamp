@@ -49,21 +49,12 @@ async function fetchStatus() {
     const { state, config } = await res.json();
     renderStatus(state);
     syncFormToConfig(config);
-    setConnected(true);
     hideError();
   } catch {
-    setConnected(false);
     showError('Cannot reach server. Make sure the backend is running (npm start).');
   }
 }
 
-function setConnected(online) {
-  const led  = document.getElementById('connLed');
-  const text = document.getElementById('connText');
-  if (!led) return;
-  led.className  = `conn-led${online ? ' online' : ''}`;
-  text.textContent = online ? 'CONNECTED' : 'OFFLINE';
-}
 
 // ── Render status ─────────────────────────────────────────────────────────────
 
