@@ -48,11 +48,30 @@ body::before {
   z-index: 9000;
 }
 
-/* ── Body — dot grid ── */
+/* ── Body — star field ──
+   Two layers of cross-spike stars using stacked radial gradients.
+   Each "star" = center dot + vertical spike + horizontal spike.
+   Layer 1: dense small stars on 24px grid.
+   Layer 2: rarer brighter stars on 73px grid, offset to 30% 65%.
+── */
 body {
   background: var(--bg);
-  background-image: radial-gradient(rgba(0, 255, 65, 0.06) 1px, transparent 1px);
-  background-size: 22px 22px;
+  background-image:
+    /* small stars — center */
+    radial-gradient(ellipse 1px 1px     at 50% 50%, rgba(0,255,65,0.55) 0%, transparent 100%),
+    /* small stars — vertical spike */
+    radial-gradient(ellipse 0.5px 3.5px at 50% 50%, rgba(0,255,65,0.22) 0%, transparent 100%),
+    /* small stars — horizontal spike */
+    radial-gradient(ellipse 3.5px 0.5px at 50% 50%, rgba(0,255,65,0.22) 0%, transparent 100%),
+    /* large rare stars — center */
+    radial-gradient(ellipse 1.5px 1.5px at 30% 65%, rgba(0,255,65,0.80) 0%, transparent 100%),
+    /* large rare stars — vertical spike */
+    radial-gradient(ellipse 0.5px 7px   at 30% 65%, rgba(0,255,65,0.30) 0%, transparent 100%),
+    /* large rare stars — horizontal spike */
+    radial-gradient(ellipse 7px 0.5px   at 30% 65%, rgba(0,255,65,0.30) 0%, transparent 100%);
+  background-size:
+    24px 24px, 24px 24px, 24px 24px,
+    73px 73px, 73px 73px, 73px 73px;
   color: var(--text);
   font-family: 'Share Tech Mono', 'Courier New', monospace;
   font-size: 13px;
@@ -82,13 +101,22 @@ body {
 }
 .star {
   position: absolute;
-  background: var(--green);
-  border-radius: 50%;
+  color: var(--green);
+  line-height: 1;
+  font-family: sans-serif; /* use system symbol font for ✦ */
   animation: twinkle var(--dur, 3s) ease-in-out infinite var(--delay, 0s);
 }
 @keyframes twinkle {
-  0%, 100% { opacity: 0.15; transform: scale(1); }
-  50%       { opacity: 0.9;  transform: scale(1.6); }
+  0%, 100% {
+    opacity: 0.08;
+    transform: scale(0.75) rotate(0deg);
+    text-shadow: 0 0 3px var(--green);
+  }
+  50% {
+    opacity: 0.95;
+    transform: scale(1.1) rotate(20deg);
+    text-shadow: 0 0 6px var(--green), 0 0 14px rgba(0,255,65,0.5);
+  }
 }
 
 /* ── Header ── */

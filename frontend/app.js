@@ -22,19 +22,20 @@ window.addEventListener('DOMContentLoaded', () => {
 function spawnStars() {
   const container = document.getElementById('stars');
   if (!container) return;
-  const N = 60;
-  for (let i = 0; i < N; i++) {
-    const el = document.createElement('div');
-    el.className = 'star';
-    const size = Math.random() < 0.2 ? 3 : 2;
+  // ✦ = 4-pointed star (most), ✶ = 6-pointed (occasional accent)
+  const glyphs = ['✦','✦','✦','✦','✦','✶','✦','✦'];
+  for (let i = 0; i < 55; i++) {
+    const el   = document.createElement('span');
+    el.className   = 'star';
+    el.textContent = glyphs[Math.floor(Math.random() * glyphs.length)];
+    const size = Math.random() < 0.15 ? (10 + Math.random() * 8) : (5 + Math.random() * 6);
     el.style.cssText = `
-      left: ${Math.random() * 100}vw;
-      top:  ${Math.random() * 100}vh;
-      width:  ${size}px;
-      height: ${size}px;
-      --dur:   ${2 + Math.random() * 4}s;
-      --delay: ${-Math.random() * 5}s;
-      opacity: 0;
+      left:      ${Math.random() * 100}vw;
+      top:       ${Math.random() * 100}vh;
+      font-size: ${size}px;
+      --dur:     ${2.5 + Math.random() * 5}s;
+      --delay:   ${-Math.random() * 7}s;
+      opacity:   0;
     `;
     container.appendChild(el);
   }
