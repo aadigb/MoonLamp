@@ -9,7 +9,7 @@
  * Wiring:
  *   Ring PWR  → ESP32 5V (or VIN)
  *   Ring GND  → ESP32 GND
- *   Ring DIN  → ESP32 GPIO 5
+ *   Ring DIN  → ESP32 GPIO 4
  *
  * /api/color response:
  *   { "color": "green", "intensity": 0.85, "alert": false }
@@ -48,9 +48,13 @@ Adafruit_NeoPixel ring(NUM_PIXELS, DATA_PIN, NEO_GRB + NEO_KHZ800);
 unsigned long lastPoll = 0;
 
 // Current values from last server response
-String  currentColor    = "white";
+String  currentColor     = "white";
 float   currentIntensity = 0.2f;
-bool    currentAlert    = false;
+bool    currentAlert     = false;
+
+// Previous values — used for smooth fade transitions
+String  prevColor        = "white";
+float   prevIntensity    = 0.2f;
 
 // ── Color helpers ─────────────────────────────────────────────────────────────
 
@@ -72,10 +76,31 @@ void setAll(RGB c, float brightnessScale) {
   ring.show();
 }
 
+// ── Fade transition ───────────────────────────────────────────────────────────
+
+/*
+ * Smoothly blends from one color+brightness to another over durationMs.
+ * Runs blocking — call only from pollServer(), not from loop().
+ */
+void fadeToColor(RGB from, float fromBright, RGB to, float toBright, int durationMs) {
+  const int steps = durationMs / 10;
+  for (int i = 0; i <= steps; i++) {
+    float t = (float)i / steps;
+    RGB blended = {
+      (uint8_t)(from.r + (to.r - from.r) * t),
+      (uint8_t)(from.g + (to.g - from.g) * t),
+      (uint8_t)(from.b + (to.b - from.b) * t)
+    };
+    float bright = fromBright + (toBright - fromBright) * t;
+    setAll(blended, bright);
+    delay(10);
+  }
+}
+
 // ── Animations ────────────────────────────────────────────────────────────────
 
 /*
- * Slow sine-wave breathe. Modulates brightness between 15% and intensity.
+ * Slow sine-wave breathe. Modulates brightness between 8% and intensity.
  * Call every loop() iteration — returns true once per full cycle.
  */
 bool breathe() {
@@ -160,19 +185,31 @@ void pollServer() {
 
     StaticJsonDocument<128> doc;
     if (deserializeJson(doc, body) == DeserializationError::Ok) {
-      currentColor     = doc["color"].as<String>();
-      currentIntensity = doc["intensity"] | 0.5f;
-      currentAlert     = doc["alert"]     | false;
-
-      // Scale intensity against max brightness
-      ring.setBrightness((uint8_t)(MAX_BRIGHTNESS * currentIntensity));
+      String  newColor     = doc["color"].as<String>();
+      float   newIntensity = doc["intensity"] | 0.5f;
+      bool    newAlert     = doc["alert"]     | false;
 
       Serial.printf("color=%s intensity=%.2f alert=%s\n",
-        currentColor.c_str(), currentIntensity, currentAlert ? "YES" : "no");
+        newColor.c_str(), newIntensity, newAlert ? "YES" : "no");
 
-      // Apply immediately (animation will take over in loop())
-      RGB c = colorForState(currentColor);
-      setAll(c, currentIntensity);
+      currentColor = newColor;
+      if (currentColor == "off") return; // skip brightness update for off state
+
+      // Scale intensity against max brightness
+      ring.setBrightness((uint8_t)(MAX_BRIGHTNESS * newIntensity));
+
+      // Fade from previous state to new state (800ms lamp-like transition)
+      RGB fromC = colorForState(prevColor);
+      RGB toC   = colorForState(newColor);
+      fadeToColor(fromC, prevIntensity, toC, newIntensity, 800);
+
+      // Commit new state
+      prevColor        = newColor;
+      prevIntensity    = newIntensity;
+      currentColor     = newColor;
+      currentIntensity = newIntensity;
+      currentAlert     = newAlert;
+
     } else {
       Serial.println("JSON parse error");
     }
@@ -206,6 +243,18 @@ void setup() {
 }
 
 void loop() {
+  // Schedule: server returns color="off" when lamp should be inactive
+  if (currentColor == "off") {
+    ring.clear();
+    ring.show();
+    delay(1000);
+    if (millis() - lastPoll >= POLL_INTERVAL_MS) {
+      lastPoll = millis();
+      pollServer();
+    }
+    return;
+  }
+
   // Animate
   if (currentAlert) {
     alertFlash();

@@ -62,14 +62,16 @@
       </div>
       <div class="card-body">
         <div class="tabs">
-          <button class="tab active" id="tabAsset" onclick="switchMode('asset')">ASSET_PRICE</button>
-          <button class="tab" id="tabWallet" onclick="switchMode('wallet')">EVM_WALLET</button>
+          <button class="tab active" id="tabAsset"  onclick="switchMode('asset')">ASSET_PRICE</button>
+          <button class="tab"        id="tabBundle" onclick="switchMode('bundle')">BUNDLE</button>
+          <button class="tab"        id="tabWallet" onclick="switchMode('wallet')">EVM_WALLET</button>
         </div>
 
+        <!-- Single asset -->
         <div id="panelAsset">
           <div class="tabs sub-tabs">
             <button class="tab active" id="tabCrypto" onclick="switchAssetType('crypto')">CRYPTO</button>
-            <button class="tab" id="tabStock" onclick="switchAssetType('stock')">STOCK</button>
+            <button class="tab"        id="tabStock"  onclick="switchAssetType('stock')">STOCK</button>
           </div>
 
           <div id="cryptoInput">
@@ -93,6 +95,56 @@
           <button class="btn" onclick="saveAsset()">[ EXECUTE_TRACK ]</button>
         </div>
 
+        <!-- Bundle -->
+        <div id="panelBundle" style="display:none">
+          <!-- Saved bundles list view -->
+          <div id="bundleSavedView">
+            <div class="field-hint" style="margin-bottom:10px">SELECT A BUNDLE TO TRACK · WEIGHTED AVG 24H CHANGE</div>
+            <div id="savedBundlesList"></div>
+            <button class="btn btn-sm" onclick="startNewBundle()">[ + CREATE_BUNDLE ]</button>
+          </div>
+
+          <!-- Editor view (create / edit) -->
+          <div id="bundleEditorView" style="display:none">
+            <label class="field-label">// BUNDLE_NAME</label>
+            <input type="text" id="bundleNameInput" class="input" placeholder="MY_CRYPTO_BAG" style="margin-bottom:12px;text-transform:uppercase" />
+
+            <div id="bundleList"></div>
+
+            <div class="bundle-add-row">
+              <div class="tabs sub-tabs" style="margin-bottom:8px">
+                <button class="tab active" id="tabBundleCrypto" onclick="switchBundleAddType('crypto')">CRYPTO</button>
+                <button class="tab"        id="tabBundleStock"  onclick="switchBundleAddType('stock')">STOCK</button>
+              </div>
+              <div id="bundleAddCrypto">
+                <div class="search-wrap">
+                  <input type="text" id="bundleCryptoSearch" class="input"
+                    placeholder="SEARCH CRYPTO..." oninput="onBundleCryptoSearch(this.value)" autocomplete="off" />
+                  <div class="dropdown" id="bundleCryptoDropdown"></div>
+                </div>
+              </div>
+              <div id="bundleAddStock" style="display:none">
+                <input type="text" id="bundleStockTicker" class="input"
+                  placeholder="AAPL, TSLA, SPY..." style="text-transform:uppercase" />
+              </div>
+              <div class="bundle-weight-row">
+                <span class="field-label" style="margin:0">// WEIGHT</span>
+                <span class="bundle-weight-val" id="bundleWeightVal">50</span>
+                <input type="range" id="bundleWeightSlider" class="slider"
+                  min="1" max="100" value="50"
+                  oninput="document.getElementById('bundleWeightVal').textContent=this.value" />
+              </div>
+              <button class="btn btn-sm" onclick="bundleAddItem()">[ + ADD_ASSET ]</button>
+            </div>
+
+            <div style="display:flex;gap:8px;margin-top:10px">
+              <button class="btn btn-sm" style="margin-top:0;flex:1" onclick="cancelBundleEdit()">[ CANCEL ]</button>
+              <button class="btn btn-sm" style="margin-top:0;flex:2" onclick="saveNamedBundle()">[ SAVE_BUNDLE ]</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Wallet -->
         <div id="panelWallet" style="display:none">
           <label class="field-label">// WALLET_ADDR</label>
           <input type="text" id="walletInput" class="input"
@@ -128,29 +180,90 @@
       </div>
     </div>
 
+    <!-- Lamp schedule -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title-text">&gt; LAMP_SCHEDULE</span>
+        <div class="card-controls"><span></span><span></span><span></span></div>
+      </div>
+      <div class="card-body">
+        <div class="schedule-toggle-row">
+          <div>
+            <div class="field-label" style="margin-bottom:2px">// ACTIVE_HOURS</div>
+            <div class="field-hint">LAMP ONLY ON DURING THESE HOURS · PST</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="scheduleEnabled" onchange="onScheduleToggle()" />
+            <span class="toggle-track"><span class="toggle-thumb"></span></span>
+          </label>
+        </div>
+        <div id="scheduleTimeWrap" style="display:none;margin-top:14px">
+          <div class="schedule-times">
+            <div>
+              <label class="field-label">// ON_TIME</label>
+              <input type="time" id="scheduleStart" class="input time-input" value="09:00" />
+            </div>
+            <div class="schedule-sep">→</div>
+            <div>
+              <label class="field-label">// OFF_TIME</label>
+              <input type="time" id="scheduleEnd" class="input time-input" value="22:00" />
+            </div>
+          </div>
+          <div class="field-hint" id="schedulePstNow" style="margin-top:8px"></div>
+        </div>
+        <button class="btn btn-sm" onclick="saveSchedule()">[ SAVE_SCHEDULE ]</button>
+      </div>
+    </div>
+
+    <!-- Mood check-in -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title-text">&gt; MOOD_LOG</span>
+        <div class="card-controls"><span></span><span></span><span></span></div>
+      </div>
+      <div class="card-body">
+        <div class="field-label">// HOW_ARE_YOU_FEELING</div>
+        <div class="mood-grid" id="moodGrid">
+          <button class="mood-btn" onclick="logMood('🚀 PUMPED')">🚀 PUMPED</button>
+          <button class="mood-btn" onclick="logMood('😤 STRESSED')">😤 STRESSED</button>
+          <button class="mood-btn" onclick="logMood('😐 NEUTRAL')">😐 NEUTRAL</button>
+          <button class="mood-btn" onclick="logMood('😴 TIRED')">😴 TIRED</button>
+          <button class="mood-btn" onclick="logMood('🎯 FOCUSED')">🎯 FOCUSED</button>
+          <button class="mood-btn" onclick="logMood('😰 ANXIOUS')">😰 ANXIOUS</button>
+          <button class="mood-btn mood-other" onclick="toggleMoodOther()" style="grid-column:1/-1">✏ OTHER</button>
+        </div>
+        <div id="moodOtherWrap" style="display:none;margin-bottom:10px">
+          <input type="text" id="moodOtherInput" class="input" placeholder="TYPE YOUR MOOD..."
+            maxlength="40" onkeydown="if(event.key==='Enter')submitMoodOther()"
+            style="margin-bottom:8px;font-size:15px;padding:12px 14px" />
+          <button class="btn btn-sm" onclick="submitMoodOther()" style="margin-top:0;width:100%">[ LOG MOOD ]</button>
+        </div>
+        <div class="mood-log" id="moodLog"></div>
+      </div>
+    </div>
+
+    <!-- Vault -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title-text">&gt; VAULT_ID</span>
+        <div class="card-controls"><span></span><span></span><span></span></div>
+      </div>
+      <div class="card-body">
+        <div class="field-hint" style="margin-bottom:12px">ANONYMOUS ACCESS KEY — COPY TO SYNC ACROSS DEVICES · DO NOT SHARE</div>
+        <div class="vault-id" id="vaultId"></div>
+        <div class="vault-actions">
+          <button class="btn btn-sm" style="margin-top:0" onclick="copyVaultId()" id="copyBtn">[ COPY_KEY ]</button>
+          <button class="btn btn-sm" style="margin-top:0" onclick="toggleRestore()">[ RESTORE ]</button>
+        </div>
+        <div id="restoreWrap" style="display:none;margin-top:12px">
+          <input type="text" id="restoreInput" class="input" placeholder="PASTE YOUR KEY HERE..." spellcheck="false" />
+          <button class="btn btn-sm" onclick="confirmRestore()">[ CONFIRM_RESTORE ]</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Error -->
     <div class="error-box" id="errorBox" style="display:none"></div>
-
-    <!-- ESP32 guide -->
-    <details class="card info-card">
-      <summary>
-        <div class="card-header">
-          <span class="card-title-text">&gt; ESP32_SETUP [CLICK TO EXPAND]</span>
-        </div>
-      </summary>
-      <div class="card-body info-body">
-        <p>ESP32 polls <code id="espEndpoint">http://&lt;ip&gt;:3000/api/color</code> every 60s.</p>
-        <p>Response: <code>{"color":"green","intensity":0.85,"alert":false}</code></p>
-        <ol>
-          <li>Install <strong>Arduino IDE</strong> + ESP32 board support</li>
-          <li>Libs: <strong>Adafruit NeoPixel</strong> + <strong>ArduinoJson</strong></li>
-          <li>Open <code>firmware/moonlamp/moonlamp.ino</code></li>
-          <li>Set WIFI_SSID, WIFI_PASSWORD, SERVER_HOST</li>
-          <li>Flash via USB → open Serial Monitor @ 115200 baud</li>
-        </ol>
-        <p>Your local IP: <strong id="localIp">run ipconfig to find</strong></p>
-      </div>
-    </details>
 
   </div>
 

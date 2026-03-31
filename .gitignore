@@ -1,4 +1,6 @@
 node_modules/
 backend/.env
 backend/config.json
+backend/moods.json
+backend/data/
 .DS_Store
