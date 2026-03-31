@@ -455,6 +455,8 @@ async function saveNamedBundle() {
   const rawName = document.getElementById('bundleNameInput').value.trim().toUpperCase();
   if (!rawName) { showError('Enter a name for this bundle.'); return; }
   if (!bundleItems.length) { showError('Add at least one asset to the bundle.'); return; }
+  const totalWeight = bundleItems.reduce((s, b) => s + Number(b.weight), 0);
+  if (totalWeight !== 100) { showToast(`WEIGHTS MUST SUM TO 100 (CURRENT: ${totalWeight})`); return; }
   hideError();
 
   // If renaming, remove old name
