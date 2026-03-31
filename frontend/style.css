@@ -932,3 +932,32 @@ h1 {
   padding: 8px 10px;
   font-size: 14px;
 }
+
+/* ── Toast notification ── */
+#toast {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  background: var(--green-dark);
+  border: 1px solid var(--green);
+  color: var(--green);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 2px;
+  padding: 8px 14px;
+  border-radius: var(--r);
+  box-shadow: 0 0 12px rgba(0,255,65,0.3);
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 0.18s, transform 0.18s;
+}
+#toast.toast-show {
+  opacity: 1;
+  transform: translateY(0);
+}
+#toast.toast-hide {
+  opacity: 0;
+  transform: translateY(-6px);
+}

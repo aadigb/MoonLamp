@@ -31,9 +31,11 @@ if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY) {
 
 // ── Price cache ────────────────────────────────────────────────────────────────
 
-const priceCache = new Map();
-const CRYPTO_TTL = 5  * 60 * 1000;
-const STOCK_TTL  = 10 * 60 * 1000;
+const priceCache  = new Map();
+const searchCache = new Map();
+const CRYPTO_TTL  = 15 * 60 * 1000;  // 15 min
+const STOCK_TTL   = 15 * 60 * 1000;  // 15 min
+const SEARCH_TTL  = 10 * 60 * 1000;  // 10 min — search results don't change often
 
 function fromCache(key, ttl) {
   const hit = priceCache.get(key);
@@ -377,10 +379,16 @@ app.post('/api/config', async (req, res) => {
 
 app.get('/api/search/crypto', async (req, res) => {
   try {
+    const q = (req.query.q || '').toLowerCase().trim();
+    const hit = searchCache.get(q);
+    if (hit && Date.now() - hit.ts < SEARCH_TTL) return res.json(hit.data);
     const { default: fetch } = await import('node-fetch');
-    const r = await fetch(`https://api.coingecko.com/api/v3/search?query=${encodeURIComponent(req.query.q || '')}`);
+    const r = await fetch(`https://api.coingecko.com/api/v3/search?query=${encodeURIComponent(q)}`);
+    if (!r.ok) throw new Error(`CoinGecko search HTTP ${r.status}`);
     const data = await r.json();
-    res.json((data.coins || []).slice(0, 8).map(c => ({ id: c.id, name: c.name, symbol: c.symbol.toUpperCase(), thumb: c.thumb })));
+    const result = (data.coins || []).slice(0, 8).map(c => ({ id: c.id, name: c.name, symbol: c.symbol.toUpperCase(), thumb: c.thumb }));
+    searchCache.set(q, { data: result, ts: Date.now() });
+    res.json(result);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

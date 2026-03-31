@@ -525,7 +525,7 @@ async function postConfig(body) {
     });
     const data = await res.json();
     if (data.state?.error) showError(data.state.error);
-    else renderStatus(data.state);
+    else { renderStatus(data.state); showToast('SETTINGS APPLIED'); }
   } catch (err) {
     showError('Request failed: ' + err.message);
   }
@@ -563,6 +563,7 @@ async function logMood(mood) {
     });
     const data = await res.json();
     renderMoodLog(data.recent);
+    showToast('MOOD LOGGED');
     // Flash the selected button
     document.querySelectorAll('.mood-btn').forEach(btn => {
       btn.classList.toggle('mood-active', btn.textContent.trim() === mood);
@@ -608,6 +609,23 @@ function formatNumber(n) {
 
 function escHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showToast(msg) {
+  let toast = document.getElementById('toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'toast';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = msg;
+  toast.classList.remove('toast-hide');
+  toast.classList.add('toast-show');
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => {
+    toast.classList.remove('toast-show');
+    toast.classList.add('toast-hide');
+  }, 2000);
 }
 
 function showError(msg) {
