@@ -2,7 +2,7 @@
 
 > A physical LED lamp that glows **green** or **red** based on a crypto/stock price or your EVM wallet portfolio — with brightness scaling to signal intensity and a rapid flash alert mode.
 
-Built with an ESP32 + Adafruit NeoPixel Ring 16, a Node.js backend, and a Y2K-themed web UI.
+Built with an ESP32 + Adafruit NeoPixel Ring 16, a Node.js backend, and a simple website to control it.
 
 ---
 
@@ -95,7 +95,7 @@ Open **http://localhost:3000** in your browser.
 
 ## Using the Web UI
 
-1. **Asset Price mode** — search for a crypto (Bitcoin, Ethereum, Solana…) or enter a stock ticker (AAPL, TSLA, SPY…) and click `[ EXECUTE_TRACK ]`
+1. **Asset Price mode** — search for a crypto (Bitcoin, Ethereum, Solana…) or enter a stock ticker (AAPL, TSLA, SPY…) and click `[ EXECUTE_TRACK ]` or create budles of tickers with weighted allocation
 2. **EVM Wallet mode** — paste a `0x…` address. Uses the Zerion API to fetch your full multi-token portfolio value and real 24h P&L
 3. **Alert Threshold** — drag the slider to set the % move that triggers rapid flash mode on the lamp. Default is 5%.
 
