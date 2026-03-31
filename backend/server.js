@@ -178,13 +178,19 @@ function isWithinSchedule(schedule) {
 
 // ── Price fetching ─────────────────────────────────────────────────────────────
 
+function cgHeaders() {
+  const h = { Accept: 'application/json' };
+  if (process.env.COINGECKO_API_KEY) h['x-cg-demo-api-key'] = process.env.COINGECKO_API_KEY;
+  return h;
+}
+
 async function fetchCryptoData(coinId) {
   const cached = fromCache(`crypto:${coinId}`, CRYPTO_TTL);
   if (cached) return cached;
   const { default: fetch } = await import('node-fetch');
   const res = await fetch(
     `https://api.coingecko.com/api/v3/simple/price?ids=${encodeURIComponent(coinId)}&vs_currencies=usd&include_24hr_change=true&include_market_cap=false`,
-    { headers: { Accept: 'application/json' } }
+    { headers: cgHeaders() }
   );
   if (!res.ok) throw new Error(`CoinGecko HTTP ${res.status}`);
   const data = await res.json();
@@ -262,7 +268,7 @@ async function fetchBundleData(bundle) {
     const uncached = cryptoItems.filter(b => !fromCache(`crypto:${b.asset}`, CRYPTO_TTL));
     if (uncached.length) {
       const ids = uncached.map(b => encodeURIComponent(b.asset)).join(',');
-      const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`, { headers: { Accept: 'application/json' } });
+      const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`, { headers: cgHeaders() });
       if (!res.ok) throw new Error(`CoinGecko HTTP ${res.status}`);
       const fresh = await res.json();
       for (const [id, d] of Object.entries(fresh)) {
@@ -383,7 +389,7 @@ app.get('/api/search/crypto', async (req, res) => {
     const hit = searchCache.get(q);
     if (hit && Date.now() - hit.ts < SEARCH_TTL) return res.json(hit.data);
     const { default: fetch } = await import('node-fetch');
-    const r = await fetch(`https://api.coingecko.com/api/v3/search?query=${encodeURIComponent(q)}`);
+    const r = await fetch(`https://api.coingecko.com/api/v3/search?query=${encodeURIComponent(q)}`, { headers: cgHeaders() });
     if (!r.ok) throw new Error(`CoinGecko search HTTP ${r.status}`);
     const data = await r.json();
     const result = (data.coins || []).slice(0, 8).map(c => ({ id: c.id, name: c.name, symbol: c.symbol.toUpperCase(), thumb: c.thumb }));
