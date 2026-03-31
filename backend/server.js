@@ -286,7 +286,8 @@ async function fetchBundleData(bundle) {
 
   const stockResults = [];
   for (const item of stockItems) {
-    stockResults.push(await fetchStockData(item.asset));
+    const data = await fetchStockData(item.asset);
+    stockResults.push({ ticker: item.asset.toUpperCase(), ...data });
     if (stockItems.length > 1) await new Promise(r => setTimeout(r, 300));
   }
 
@@ -297,7 +298,7 @@ async function fetchBundleData(bundle) {
       if (!d) throw new Error(`Coin not found: "${item.asset}"`);
       return { label: item.label || item.asset, change24h: d.usd_24h_change ?? null, normWeight };
     }
-    const d = stockResults.find(r => r.label.toUpperCase() === item.asset.toUpperCase());
+    const d = stockResults.find(r => r.ticker === item.asset.toUpperCase());
     return { label: item.label || item.asset, change24h: d?.change24h ?? null, normWeight };
   });
 
